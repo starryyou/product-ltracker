@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<!-- build: 2026-11-24 19:07:10 | V7.8 在七个数值列基础上新增「库存更新时间」升降序排序 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>产品上架追踪</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; font-size: 13px; color: #333; background: #f5f7fa; }
+a { text-decoration: none; color: inherit; }
+ul, ol { list-style: none; }
+
+.app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+/* Top nav */
+.top-nav { height: 48px; background: #1e5fd9; color: #fff; display: flex; align-items: center; padding: 0 16px; flex-shrink: 0; }
+.nav-brand { display: flex; align-items: center; gap: 24px; margin-right: 32px; }
+.logo { font-size: 20px; font-weight: 700; letter-spacing: 1px; }
+.nav-menus { display: flex; align-items: center; gap: 4px; flex: 1; }
+.nav-menu { padding: 0 14px; height: 48px; line-height: 48px; font-size: 13px; color: rgba(255,255,255,0.85); cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 4px; }
+.nav-menu:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.nav-menu.active { background: rgba(255,255,255,0.15); color: #fff; font-weight: 500; }
+.nav-menu .arrow { font-size: 10px; opacity: 0.7; }
+.nav-right { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+.nav-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: rgba(255,255,255,0.9); border-radius: 4px; }
+.nav-icon:hover { background: rgba(255,255,255,0.1); }
+.nav-user { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.nav-user .avatar { width: 28px; height: 28px; border-radius: 50%; background: #fff; color: #1e5fd9; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+.nav-user .name { font-size: 13px; color: #fff; }
+
+/* Tab bar */
+.tab-bar { height: 36px; background: #fff; border-bottom: 1px solid #e8e8e8; display: flex; align-items: flex-end; padding: 0 16px; flex-shrink: 0; }
+.tab-item { padding: 0 14px; height: 35px; line-height: 35px; font-size: 12px; color: #666; cursor: pointer; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
+.tab-item:hover { color: #333; }
+.tab-item.active { color: #1e5fd9; border-bottom-color: #1e5fd9; font-weight: 500; }
+.tab-item .close { font-size: 12px; color: #ccc; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; }
+.tab-item .close:hover { color: #666; }
+
+/* Sub module tabs */
+.sub-module-bar { height: 40px; background: #fff; border-bottom: 1px solid #e8e8e8; display: flex; align-items: center; padding: 0 16px; flex-shrink: 0; }
+.sub-module { padding: 0 12px; height: 40px; line-height: 40px; font-size: 13px; color: #666; cursor: pointer; position: relative; transition: all 0.15s; }
+.sub-module:hover { color: #1e5fd9; }
+.sub-module.active { color: #1e5fd9; font-weight: 500; }
+.sub-module.active::after { content:''; position:absolute; left:0; right:0; bottom:0; height:2px; background:#1e5fd9; }
+
+/* Main content */
+.main { flex: 1; overflow: auto; padding: 12px 16px; }
+
+/* Page header */
+.page-hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.page-title { font-size: 16px; font-weight: 600; color: #333; display: flex; align-items: center; gap: 10px; }
+.ver-badge { font-size: 11px; font-weight: 400; color: #1e5fd9; background: #e8f0fe; border: 1px solid #c5d9fb; border-radius: 10px; padding: 2px 9px; }
+.page-actions { display: flex; align-items: center; gap: 10px; }
+
+/* Buttons */
+.btn { height: 30px; padding: 0 14px; border-radius: 4px; font-size: 12px; cursor: pointer; border: 1px solid transparent; display: inline-flex; align-items: center; gap: 4px; outline: none; transition: all 0.2s; white-space: nowrap; }
+.btn-primary { background: #1e5fd9; color: #fff; border-color: #1e5fd9; }
+.btn-primary:hover { background: #1650b8; }
+.btn-primary:disabled { background: #a0b4f9; border-color: #a0b4f9; cursor: not-allowed; }
+.btn-default { background: #fff; color: #555; border-color: #d9d9d9; }
+.btn-default:hover { border-color: #1e5fd9; color: #1e5fd9; }
+.btn-orange { background: #fa8c16; color: #fff; border-color: #fa8c16; }
+.btn-orange:hover { background: #e67d0e; }
+
+/* Dropdown button */
+.dropdown-btn { position: relative; }
+.dropdown-btn .btn { padding-right: 10px; }
+.dropdown-menu { position: absolute; top: 100%; left: 0; margin-top: 4px; background: #fff; border: 1px solid #e8e8e8; border-radius: 4px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); z-index: 100; display: none; min-width: 160px; padding: 4px 0; }
+.dropdown-menu.open { display: block; }
+.dropdown-menu .dm-item { padding: 8px 14px; font-size: 12px; color: #333; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.15s; }
+.dropdown-menu .dm-item:hover { background: #f5f7ff; color: #1e5fd9; }
+.dropdown-menu .dm-item .icon { font-size: 13px; color: #1e5fd9; }
+
+/* Filter bar */
+.filter-panel { background: #fff; border: 1px solid #e8e8e8; border-radius: 4px; padding: 12px 16px; margin-bottom: 12px; }
+.filter-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.filter-item { display: flex; align-items: center; gap: 6px; }
+.filter-item > label { font-size: 12px; color: #666; white-space: nowrap; }
+.filter-input { height: 30px; border: 1px solid #d9d9d9; border-radius: 4px; padding: 0 8px; font-size: 12px; outline: none; transition: border-color 0.2s; }
+.filter-input:focus { border-color: #1e5fd9; box-shadow: 0 0 0 2px rgba(30,95,217,0.1); }
+.filter-input.short { width: 110px; }
+.filter-input.medium { width: 150px; }
+.filter-input.long { width: 200px; }
+.filter-select { height: 30px; border: 1px solid #d9d9d9; border-radius: 4px; padding: 0 22px 0 8px; font-size: 12px; background: #fff; cursor: pointer; outline: none; min-width: 110px; appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23999' fill='none' stroke-width='1.2'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; transition: border-color 0.2s; }
+.filter-select:focus { border-color: #1e5fd9; }
+.date-range { display: flex; align-items: center; gap: 6px; }
+.date-range .filter-input { width: 115px; }
+.date-range .sep { color: #999; font-size: 12px; }
+
+/* Search type wrap */
+.search-type-wrap { display: flex; align-items: center; }
+.search-type-wrap .filter-select { border-radius: 4px 0 0 4px; border-right: none; min-width: 120px; background-position: right 6px center; }
+.search-type-wrap .filter-input { border-radius: 0 4px 4px 0; width: 180px; }
+
+/* Table wrap */
+.table-wrap { background: #fff; border-radius: 4px; border: 1px solid #e8e8e8; overflow-x: auto; }
+th, td { white-space: nowrap; }
+.table-hd { padding: 10px 12px; border-bottom: 1px solid #e8e8e8; display: flex; justify-content: space-between; align-items: center; }
+.table-hd .left-info { font-size: 12px; color: #888; }
+.table-hd .left-info .hl { color: #1e5fd9; font-weight: 500; }
+.table-hd .right-tools { display: flex; align-items: center; gap: 12px; font-size: 12px; color: #888; }
+.table-hd .right-tools .tool-item { cursor: pointer; display: flex; align-items: center; gap: 4px; }
+.table-hd .right-tools .tool-item:hover { color: #1e5fd9; }
+.table-hd .page-size { height: 26px; border: 1px solid #d9d9d9; border-radius: 4px; padding: 0 6px; font-size: 12px; outline: none; }
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: #eaf0fb; padding: 10px 12px; text-align: left; font-weight: 500; color: #333; border-bottom: 1px solid #d9e3f0; white-space: nowrap; }
+td { padding: 10px 12px; border-bottom: 1px solid #eef2f7; color: #333; vertical-align: middle; }
+tr:hover td { background: #fafcff; }
+tr.selected td { background: #eef1ff; }
+.check { width: 14px; height: 14px; cursor: pointer; accent-color: #1e5fd9; }
+.sku { color: #1e5fd9; cursor: pointer; }
+.sku:hover { text-decoration: underline; }
+
+/* Tags */
+.tag { display: inline-block; padding: 1px 8px; border-radius: 3px; font-size: 11px; line-height: 1.6; }
+.tag-green { background: #e6fff0; color: #52c41a; border: 1px solid #b3e6c8; }
+.tag-orange { background: #fff7e6; color: #fa8c16; border: 1px solid #ffe0a3; }
+.tag-gray { background: #f4f4f5; color: #909399; border: 1px solid #e4e6eb; }
+
+/* Empty state */
+.empty-state { text-align: center; padding: 80px 20px; color: #999; }
+.empty-state .empty-img { width: 120px; height: 80px; margin: 0 auto; background: #f5f7fa; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #d9d9d9; font-size: 40px; }
+.empty-state p { font-size: 14px; margin-top: 16px; color: #999; }
+
+/* Pagination */
+.pagination { display: flex; align-items: center; justify-content: flex-end; gap: 4px; padding: 10px 12px; font-size: 12px; color: #555; }
+.pagination .page-btn { min-width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; background: #fff; padding: 0 8px; transition: all 0.15s; }
+.pagination .page-btn:hover { border-color: #1e5fd9; color: #1e5fd9; }
+.pagination .page-btn.active { background: #1e5fd9; color: #fff; border-color: #1e5fd9; }
+.pagination .page-btn:disabled { color: #ccc; cursor: not-allowed; }
+.pagination .page-jump { display: flex; align-items: center; gap: 4px; margin-left: 8px; }
+.pagination .page-jump input { width: 40px; height: 28px; border: 1px solid #d9d9d9; border-radius: 4px; text-align: center; font-size: 12px; outline: none; }
+
+/* Modal */
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 1000; animation: fadeIn 0.15s ease; }
+.modal-overlay.show { display: flex; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal { background: #fff; border-radius: 4px; display: flex; flex-direction: column; box-shadow: 0 4px 24px rgba(0,0,0,0.18); animation: slideUp 0.2s ease; }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.modal.md { width: 560px; max-height: 85vh; }
+.modal.lg { width: 760px; max-height: 85vh; }
+.modal-header { padding: 14px 20px; border-bottom: 1px solid #e8e8e8; display: flex; justify-content: space-between; align-items: center; }
+.modal-header .title { font-size: 15px; font-weight: 500; color: #333; }
+.modal-header .close { font-size: 18px; color: #999; cursor: pointer; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.15s; }
+.modal-header .close:hover { background: #f5f5f5; color: #666; }
+.modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+.modal-footer { padding: 12px 20px; border-top: 1px solid #e8e8e8; display: flex; justify-content: flex-end; gap: 10px; }
+
+/* Import modal */
+.import-section { margin-bottom: 20px; }
+.import-section:last-child { margin-bottom: 0; }
+.import-section-title { font-size: 13px; font-weight: 500; color: #333; margin-bottom: 10px; }
+.import-desc { font-size: 12px; color: #888; line-height: 1.6; margin-bottom: 12px; }
+.import-desc .hl { color: #1e5fd9; font-weight: 500; }
+.upload-area { border: 1px dashed #d9d9d9; border-radius: 4px; padding: 28px; text-align: center; background: #fafafa; cursor: pointer; transition: all 0.2s; }
+.upload-area:hover { border-color: #1e5fd9; background: #f6f8ff; }
+.upload-area .icon { font-size: 32px; color: #1e5fd9; margin-bottom: 8px; }
+.upload-area p { font-size: 13px; color: #555; margin-bottom: 4px; }
+.upload-area .sub { font-size: 12px; color: #999; }
+.file-input { display: none; }
+.tpl-link { color: #1e5fd9; cursor: pointer; font-size: 12px; }
+.tpl-link:hover { text-decoration: underline; }
+
+/* Batch edit modal */
+.be-table { width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid #e8e8e8; border-radius: 4px; overflow: hidden; }
+.be-table th { background: #fafafa; padding: 8px 10px; text-align: left; font-weight: 500; color: #555; border-bottom: 1px solid #e8e8e8; }
+.be-table td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; }
+.be-table tr:last-child td { border-bottom: none; }
+.be-table .be-input { width: 100%; height: 28px; border: 1px solid #d9d9d9; border-radius: 4px; padding: 0 8px; font-size: 12px; outline: none; }
+.be-table .be-input:focus { border-color: #1e5fd9; box-shadow: 0 0 0 2px rgba(30,95,217,0.1); }
+.be-tip { background: #f6f8ff; border: 1px solid #d6e4ff; border-radius: 4px; padding: 10px 12px; font-size: 12px; color: #555; margin-bottom: 14px; line-height: 1.6; }
+.be-tip strong { color: #1e5fd9; }
+
+/* Toast */
+.toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; padding: 10px 24px; border-radius: 4px; font-size: 13px; color: #fff; box-shadow: 0 2px 12px rgba(0,0,0,0.15); animation: toastIn 0.25s ease; pointer-events: none; }
+.toast.success { background: #52c41a; }
+.toast.info { background: #1e5fd9; }
+.toast.warn { background: #fa8c16; }
+@keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(-10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* 数值列对齐与合并单元格 */
+.table-wrap table { min-width: 2106px; table-layout: fixed; }
+th.num, td.num { text-align: right; }
+.th-sub { font-weight: 400; color: #999; font-size: 11px; }
+td.merged { vertical-align: top; }
+tr.group-first td { border-top: 1px solid #dbe4f2; }
+thead th { height: 40px; }
+
+/* 状态双标签与展开控件 */
+.tag-group { display: inline-flex; gap: 4px; align-items: center; flex-wrap: nowrap; }
+.tag .cnt { display: inline-block; min-width: 14px; padding: 0 4px; margin-left: 4px; border-radius: 8px; background: rgba(0,0,0,.09); font-size: 10px; line-height: 14px; text-align: center; }
+.expander { display: inline-block; width: 14px; cursor: pointer; color: #1e5fd9; user-select: none; font-size: 11px; }
+.expander:hover { color: #1650b8; }
+.expander.idle { color: #ccc; cursor: default; }
+td.site-col { color: #666; white-space: normal; line-height: 1.4; }
+tr.detail-row td { background: #fafbfe; }
+tr.detail-row td.site-indent { padding-left: 26px; }
+
+/* 展开列与展开态视觉 */
+.expand-col { width: 34px; }
+td.expand-cell { text-align: center; padding: 10px 4px; }
+.expander { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; cursor: pointer; color: #1e5fd9; font-size: 8px; user-select: none; border: 1px solid #cfe0f7; border-radius: 3px; background: #fff; }
+.expander:hover { background: #e4eefc; border-color: #1e5fd9; }
+.tag-sync { background: #f2f3f5; color: #909399; border: 1px solid #e4e6eb; }
+.site-names { cursor: pointer; }
+.site-names:hover { color: #1e5fd9; text-decoration: underline; }
+tr.parent-expanded td { background: #e4eefc; border-bottom: 1px solid #cddcf5; }
+tr.parent-expanded td.expand-cell { background: #d8e7fc; }
+tr.parent-expanded td.num, tr.parent-expanded td.site-col { font-weight: 500; }
+tr.detail-row td { background: #fcfdff; border-bottom: 1px dashed #edf1f7; }
+tr.detail-row td.expand-cell { position: relative; }
+tr.detail-row td.expand-cell::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #d5e2f3; }
+tr.detail-row:last-of-type td.expand-cell::before { bottom: 50%; }
+tr.detail-row td.site-indent { padding-left: 28px; position: relative; }
+tr.detail-row td.site-indent::before { content: ''; position: absolute; left: 13px; top: 50%; width: 10px; border-top: 1px dashed #b9cbe6; }
+
+/* 仓库合集截断 + 明细缩进 */
+td.wh-col { white-space: normal; line-height: 1.4; }
+.wh-sum { color: #555; cursor: pointer; display: inline-block; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+.wh-sum:hover { color: #1e5fd9; text-decoration: underline; }
+.wh-more { color: #9aa7bd; font-size: 11px; margin-left: 2px; }
+td.wh-detail { color: #666; padding-left: 24px; position: relative; }
+td.wh-detail::before { content: ''; position: absolute; left: 12px; top: 50%; width: 8px; border-top: 1px dashed #b9cbe6; }
+
+/* 主数据行 / 明细数据行 */
+tr.lv1-row td { border-top: 1px solid #dbe4f2; }
+tr.lv2-row td { background: #f6f9fe; border-bottom: 1px solid #e2ebf9; }
+tr.lv2-row td:first-child { border-left: 3px solid #7b9beb; }
+td.pad { color: #fff; }
+td.prod-cell { font-weight: 500; }
+.prod-code { color: #1e5fd9; font-weight: 600; cursor: pointer; }
+.prod-code:hover { text-decoration: underline; }
+td.time-cell { color: #7a8699; font-size: 11.5px; }
+/* 明细行「产品信息」单元格两行：第一行产品编码（与主行产品编码左对齐），第二行平台SKU（缩进并带 └ 层级标记） */
+td.prod-cell.detail-prod { padding-left: 12px; position: relative; font-weight: 400; }
+td.prod-cell.detail-prod .dp-l1 { color: #4a5568; font-weight: 500; line-height: 1.5; }
+td.prod-cell.detail-prod .dp-l2 { color: #1e5fd9; font-weight: 600; line-height: 1.5; padding-left: 14px; position: relative; }
+td.prod-cell.detail-prod .dp-l2::before { content: '\2514'; position: absolute; left: 1px; top: 50%; transform: translateY(-50%); color: #a9bfe2; font-size: 11px; }
+
+/* 字段说明问号 */
+.qmark { display: inline-flex; align-items: center; justify-content: center; width: 13px; height: 13px;
+         margin-left: 5px; border: 1px solid #a9b8d0; border-radius: 50%; color: #8a97ab;
+         font-size: 9px; font-weight: 600; cursor: help; user-select: none; vertical-align: 1px; }
+.qmark:hover { background: #1e5fd9; border-color: #1e5fd9; color: #fff; }
+#fieldTip { position: fixed; z-index: 3000; display: none; max-width: 330px; padding: 9px 13px;
+            background: rgba(36, 48, 70, 0.96); color: #fff; font-size: 12px; line-height: 1.7;
+            border-radius: 4px; box-shadow: 0 4px 16px rgba(0,0,0,0.22); pointer-events: none; }
+#fieldTip.show { display: block; }
+
+/* 可排序表头 */
+th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+th.sortable:hover { color: #1e5fd9; }
+th.sortable:hover .sort-ind::before { border-bottom-color: #1e5fd9; }
+th.sortable:hover .sort-ind::after { border-top-color: #1e5fd9; }
+.sort-ind { display: inline-flex; flex-direction: column; justify-content: center; align-items: center;
+            width: 8px; height: 13px; margin-left: 5px; vertical-align: -2px; }
+.sort-ind::before, .sort-ind::after { content: ''; width: 0; height: 0;
+            border-left: 3.5px solid transparent; border-right: 3.5px solid transparent; }
+.sort-ind::before { border-bottom: 4.5px solid #b0b8c6; margin-bottom: 1.5px; }
+.sort-ind::after { border-top: 4.5px solid #b0b8c6; }
+th.sortable.active { color: #1e5fd9; }
+th.sortable[data-dir="asc"] .sort-ind::before { border-bottom-color: #1e5fd9; }
+th.sortable[data-dir="asc"] .sort-ind::after { border-top-color: #dde3ec; }
+th.sortable[data-dir="desc"] .sort-ind::before { border-bottom-color: #dde3ec; }
+th.sortable[data-dir="desc"] .sort-ind::after { border-top-color: #1e5fd9; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Top nav -->
+  <div class="top-nav">
+    <div class="nav-brand">
+      <div class="logo">IMC</div>
+    </div>
+    <div class="nav-menus">
+      <div class="nav-menu">系统模块 <span class="arrow">▼</span></div>
+      <div class="nav-menu">广告模块 <span class="arrow">▼</span></div>
+      <div class="nav-menu active">销售模块 <span class="arrow">▼</span></div>
+      <div class="nav-menu">工具模块 <span class="arrow">▼</span></div>
+      <div class="nav-menu">报表管理 <span class="arrow">▼</span></div>
+      <div class="nav-menu">产品管理 <span class="arrow">▼</span></div>
+      <div class="nav-menu">AI智能中心 <span class="arrow">▼</span></div>
+      <div class="nav-menu">店铺管理 <span class="arrow">▼</span></div>
+    </div>
+    <div class="nav-right">
+      <div class="nav-icon">🔍</div>
+      <div class="nav-icon">AI</div>
+      <div class="nav-icon">🔔</div>
+      <div class="nav-user">
+        <div class="avatar">游</div>
+        <span class="name">游星雨</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <div class="tab-item">首页</div>
+    <div class="tab-item">开发者引用demo <span class="close">x</span></div>
+    <div class="tab-item">收件箱 <span class="close">x</span></div>
+    <div class="tab-item">Listing-FBA <span class="close">x</span></div>
+    <div class="tab-item">Listing-FBM <span class="close">x</span></div>
+    <div class="tab-item active">产品上架追踪 <span class="close">x</span></div>
+  </div>
+
+  <!-- Main content -->
+  <div class="main">
+    <!-- Page header -->
+    <div class="page-hd">
+      <div class="page-title">产品上架追踪<span class="ver-badge">V7.8 · 八列可排序</span></div>
+      <div class="page-actions">
+        <div class="dropdown-btn">
+          <button class="btn btn-primary" id="btnBatchEdit" disabled>
+            批量修改 <span id="batchArrow">▲</span>
+          </button>
+          <div class="dropdown-menu" id="batchMenu">
+            <div class="dm-item" data-type="salesman"><span class="icon">✎</span> 修改业务员</div>
+            <div class="dm-item" data-type="code"><span class="icon">✎</span> 修改产品编码</div>
+            <div class="dm-item" data-type="sku"><span class="icon">✎</span> 修改平台SKU</div>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btnImport">导入</button>
+        <button class="btn btn-primary" id="btnExport" disabled>导出</button>
+      </div>
+    </div>
+
+    <!-- Filter panel -->
+    <div class="filter-panel">
+      <div class="filter-row">
+        <div class="filter-item">
+          <label>业务员</label>
+          <select class="filter-select" id="filterSalesman"><option value="">全部</option></select>
+        </div>
+        <div class="filter-item">
+          <label>销售组</label>
+          <select class="filter-select" id="filterGroup"><option value="">全部</option></select>
+        </div>
+        <div class="filter-item">
+          <label>产品系列</label>
+          <select class="filter-select" id="filterSeries"><option value="">全部</option></select>
+        </div>
+        <div class="filter-item">
+          <label>产品名称</label>
+          <input type="text" class="filter-input medium" id="filterName" placeholder="请输入产品名称">
+        </div>
+        <div class="filter-item">
+          <label>站点</label>
+          <select class="filter-select" id="filterSite"><option value="">全部</option></select>
+        </div>
+        <div class="filter-item">
+          <label>销量是否为0</label>
+          <select class="filter-select short" id="filterSalesZero">
+            <option value="">请选择</option>
+            <option value="1">是</option>
+            <option value="0">否</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label>库存是否为0</label>
+          <select class="filter-select short" id="filterStockZero">
+            <option value="">请选择</option>
+            <option value="1">是</option>
+            <option value="0">否</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label>可售listing数是否为0</label>
+          <select class="filter-select short" id="filterListingZero">
+            <option value="">请选择</option>
+            <option value="1">是</option>
+            <option value="0">否</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label>查找产品</label>
+          <div class="search-type-wrap">
+            <select class="filter-select" id="searchType">
+              <option value="platformSku">平台SKU</option>
+              <option value="productCode">产品编码</option>
+            </select>
+            <input type="text" class="filter-input" id="searchInput" placeholder="单个模糊，多个精确">
+          </div>
+        </div>
+        <div class="filter-item" style="margin-left:auto;">
+          <button class="btn btn-primary" id="btnSearch">搜索</button>
+          <button class="btn btn-default" id="btnReset">重置</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <div class="table-hd">
+        <div class="left-info">共 <span class="hl" id="rowCount">0</span> 条数据，已选 <span class="hl" id="selectedCount">0</span> 条<span style="color:#bbb;margin-left:10px;" title="主数据行＝业务员+产品编码+平台+站点，平台与站点各自唯一；展开后一行一个平台SKU，产品信息分两行（第一行产品编码、第二行平台SKU）；有货滞销天数、可售天数取明细行最大值">ⓘ 主数据行按产品编码＋平台＋站点汇总，平台与站点各自唯一；展开后一行一个平台SKU，可售listing数、销量、销售额、利润、库存的明细之和＝主行</span></div>
+        <div class="right-tools">
+          <span class="tool-item">隐藏1列</span>
+          <span class="tool-item">⚙ 设置</span>
+          <span>每页</span>
+          <select class="page-size" id="pageSize"><option>20</option><option>50</option><option>100</option></select>
+          <span>条</span>
+        </div>
+      </div>
+      <table>
+        <colgroup>
+          <col style="width:34px;"><col style="width:40px;"><col style="width:80px;"><col style="width:118px;"><col style="width:160px;">
+          <col style="width:86px;"><col style="width:180px;"><col style="width:100px;"><col style="width:76px;"><col style="width:170px;">
+          <col style="width:134px;"><col style="width:112px;"><col style="width:120px;"><col style="width:116px;"><col style="width:100px;">
+          <col style="width:138px;"><col style="width:112px;"><col style="width:176px;">
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="expand-col"></th>
+            <th><input type="checkbox" class="check" id="checkAll"></th>
+            <th>业务员</th>
+            <th>销售组</th>
+            <th title="主数据行展示产品编码；明细数据行第一行为产品编码、第二行为平台SKU">产品信息</th>
+            <th>产品系列</th>
+            <th>产品名称</th>
+            <th>平台</th>
+            <th title="主数据行与明细数据行的平台、站点各自唯一，不做合集">站点</th>
+            <th class="wh-col" title="主行显示该站点下的全部仓库；展开后按仓库逐行展示">仓库</th>
+            <th class="num sortable" data-sort="listing">可售listing数<span class="qmark" data-tip="该产品在各平台站点处于可售状态的 listing 数量之和；为 0 表示没有在线可售链接">?</span><span class="sort-ind"></span></th>
+            <th class="num sortable" data-sort="sales">销量<span class="qmark" data-tip="当年 1 月 1 日至数据更新时间，该产品的累计销量">?</span><span class="sort-ind"></span></th>
+            <th class="num sortable" data-sort="revenue">销售额<span class="qmark" data-tip="当年 1 月 1 日至数据更新时间，该产品的累计销售额">?</span><span class="sort-ind"></span></th>
+            <th class="num sortable" data-sort="profit">利润<span class="qmark" data-tip="当年 1 月 1 日至数据更新时间，该产品的累计利润">?</span><span class="sort-ind"></span></th>
+            <th class="num sortable" data-sort="stock">库存<span class="qmark" data-tip="该产品在对应仓库的当前库存数；主数据行展示全部仓库的库存合计">?</span><span class="sort-ind"></span></th>
+            <th class="num sortable" data-sort="idleDays">有货滞销天数<span class="qmark" data-tip="库存不为 0 且销量持续未发生变化的连续天数；某日出现销量变化后，次日重新从第 1 天计数">?</span><span class="sort-ind"></span></th>
+            <th class="num sortable" data-sort="sellableDays">可售天数<span class="sort-ind"></span></th>
+            <th class="sortable" data-sort="stockUpdateTime" title="该行库存数据的最近一次更新时间；点击表头按时间升降序">库存更新时间<span class="sort-ind"></span></th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- JS render -->
+        </tbody>
+      </table>
+      <div class="pagination" id="pagination">
+        <!-- JS render -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal md">
+    <div class="modal-header">
+      <div class="title">导入产品上架追踪数据</div>
+      <div class="close" id="closeImport">x</div>
+    </div>
+    <div class="modal-body">
+      <div class="import-section">
+        <div class="import-section-title">下载模板</div>
+        <div class="import-desc">请先 <span class="tpl-link" id="tplLink">下载空模板</span>，按模板表头（业务员、产品编码、平台SKU）填写后上传。系统会根据已有数据进行识别，无法识别的数据不会进入列表。</div>
+      </div>
+      <div class="import-section">
+        <div class="import-section-title">上传文件</div>
+        <div class="upload-area" id="uploadArea">
+          <div class="icon">☁</div>
+          <p>点击或拖拽 Excel 文件至此处上传</p>
+          <div class="sub">支持 .xlsx / .xls，单次不超过 5000 行</div>
+        </div>
+        <input type="file" class="file-input" id="fileInput" accept=".xlsx,.xls">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" id="cancelImport">取消</button>
+      <button class="btn btn-primary" id="confirmImport">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- Batch Edit Modal -->
+<div class="modal-overlay" id="batchEditModal">
+  <div class="modal lg">
+    <div class="modal-header">
+      <div class="title" id="beTitle">批量修改业务员</div>
+      <div class="close" id="closeBatchEdit">x</div>
+    </div>
+    <div class="modal-body">
+      <div class="be-tip">
+        <strong>注意：</strong>修改保存后，所选数据的上架状态与上架时间将会被清空，需等待第二天数据同步后才能知道最新上架情况。
+      </div>
+      <table class="be-table">
+        <thead>
+          <tr>
+            <th style="width:50px;">序号</th>
+            <th style="width:120px;">业务员</th>
+            <th style="width:140px;">产品编码</th>
+            <th style="width:140px;">平台SKU</th>
+            <th>产品名称</th>
+          </tr>
+        </thead>
+        <tbody id="beBody">
+          <!-- JS render -->
+        </tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" id="cancelBatchEdit">取消</button>
+      <button class="btn btn-primary" id="confirmBatchEdit">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== Mock 数据 =====
+// 数据唯一性：业务员 + 产品编码 + 平台SKU + 平台 + 站点 + 仓库
+// 展示层级：主数据行 ＝ 业务员 + 产品编码 + 平台 + 站点（平台、站点各自唯一，不做合集）
+//           明细数据行 ＝ 主数据行下的各平台SKU（一行一个平台SKU）
+// 可售listing数 / 销量 / 销售额 / 利润 = 平台SKU + 平台 + 站点级（同一SKU同站点的多仓库行取值相同）
+// 库存 = 仓库级；明细行为该 SKU 在本站点的仓库库存合计，主数据行为该产品在该站点下全部仓库合计
+// 字段顺序：[业务员, 销售组, 产品编码, 平台SKU, 产品系列, 产品名称, 平台, 站点,
+//           可售listing数, 销量, 销售额, 利润, 有货滞销天数, 可售天数, [[仓库, 库存]...], 库存更新时间]
+const RAW = [
+  // ---------- PD-2026-0001 北欧简约落地灯（大件）----------
+  ['李明','亚马逊二部-一组','PD-2026-0001','AMZ-BJ-1001','大件','北欧简约落地灯','Amazon','US',  2,1860,289000,68000, 0, 86,[['长迈美东仓',520],['谷仓美西20号仓',300]],'2026-11-24 06:00:00'],
+  ['李明','亚马逊二部-一组','PD-2026-0001','AMZ-BJ-1001C','大件','北欧简约落地灯','Amazon','US',1, 430, 62000,15000,  0, 86,[['长迈美东仓',180]],'2026-11-24 06:00:00'],
+  ['李明','亚马逊二部-一组','PD-2026-0001','AMZ-BJ-1001','大件','北欧简约落地灯','Amazon','UK',  1,1426,197520,50600,  0, 86,[['英国仓',420]],'2026-11-24 06:00:00'],
+  ['李明','亚马逊二部-一组','PD-2026-0001','AMZ-BJ-1001B','大件','北欧简约落地灯','Walmart','US',1, 310, 43400,10800, 0, 86,[['谷仓美西20号仓',160]],'2026-11-23 22:10:00'],
+  // ---------- PD-2026-0002 便携折叠露营桌椅套装（大件）----------
+  ['王芳','亚马逊二部-二组','PD-2026-0002','AMZ-BJ-1002','大件','便携折叠露营桌椅套装','Amazon','US',0,0,0,0,18,0,[['长迈美东仓',860]],'2026-11-24 06:00:00'],
+  ['王芳','亚马逊二部-二组','PD-2026-0002','AMZ-BJ-1002B','大件','便携折叠露营桌椅套装','Amazon','US',0,0,0,0,18,0,[['谷仓美西20号仓',300]],'2026-11-24 06:00:00'],
+  ['王芳','亚马逊二部-二组','PD-2026-0002','AMZ-BJ-1002','大件','便携折叠露营桌椅套装','Amazon','UK',0,0,0,0,25,0,[['英国仓',140]],'2026-11-22 18:30:00'],
+  // ---------- PD-2026-0003 多功能置物架（大件）----------
+  ['张伟','亚马逊六部-一组','PD-2026-0003','AMZ-BJ-2001','大件','多功能置物架','Amazon','US',1,1890,340200,86400,0,72,[['谷仓美西20号仓',620]],'2026-11-24 06:00:00'],
+  ['张伟','亚马逊六部-一组','PD-2026-0003','AMZ-BJ-2001B','大件','多功能置物架','Amazon','US',1, 260, 46800,11700,0,72,[['长迈美东仓',130]],'2026-11-24 06:00:00'],
+  ['张伟','亚马逊六部-一组','PD-2026-0003','AMZ-BJ-2001','大件','多功能置物架','Amazon','UK',1,   0,     0,    0,45,72,[['英国仓',130]],'2026-11-21 09:20:00'],
+  // ---------- PD-2026-0004 智能温湿度计（精品）----------
+  ['刘洋','亚马逊六部-二组','PD-2026-0004','AMZ-JP-3001','精品','智能温湿度计','eBay','US',   0,0,0,0,32, 0,[['长迈美东仓',300]],'2026-11-24 06:00:00'],
+  ['刘洋','亚马逊六部-二组','PD-2026-0004','AMZ-JP-3001B','精品','智能温湿度计','eBay','US',  0,0,0,0,40, 0,[['长迈美东仓',60]],'2026-11-24 06:00:00'],
+  ['刘洋','亚马逊六部-二组','PD-2026-0004','AMZ-JP-3001','精品','智能温湿度计','Amazon','US',  1,0,0,0,32,34,[['谷仓美西20号仓',90]],'2026-11-23 22:10:00'],
+  // ---------- PD-2026-0005 家用收纳柜（大件）----------
+  ['李明','亚马逊二部-一组','PD-2026-0005','AMZ-BJ-2002','大件','家用收纳柜','Walmart','US',0,0,0,0,25,0,[['谷仓美西20号仓',450]],'2026-11-24 06:00:00'],
+  ['李明','亚马逊二部-一组','PD-2026-0005','AMZ-BJ-2002','大件','家用收纳柜','Amazon','US', 0,0,0,0,25,0,[['长迈美东仓',120]],'2026-11-24 06:00:00'],
+  // ---------- PD-2026-0006 迷你蓝牙音箱（精品）----------
+  ['王芳','亚马逊二部-二组','PD-2026-0006','AMZ-JP-3002','精品','迷你蓝牙音箱','Amazon','US',1,1600,144000,33600,0,120,[['长迈美东仓',560]],'2026-11-24 06:00:00'],
+  ['王芳','亚马逊二部-二组','PD-2026-0006','AMZ-JP-3002B','精品','迷你蓝牙音箱','Amazon','US',1, 640, 57600,13440,0,120,[['谷仓美西20号仓',210]],'2026-11-24 06:00:00'],
+  ['王芳','亚马逊二部-二组','PD-2026-0006','AMZ-JP-3002','精品','迷你蓝牙音箱','Amazon','DE',1,1000, 90000,21000,0,120,[['德国仓',420]],'2026-11-20 15:45:00'],
+  // ---------- PD-2026-0007 LED护眼台灯（精品）----------
+  ['张伟','亚马逊六部-一组','PD-2026-0007','AMZ-BJP-4001','精品','LED护眼台灯','eBay','US',   1,0,0,0,11,34,[['长迈美东仓',120]],'2026-11-24 06:00:00'],
+  ['张伟','亚马逊六部-一组','PD-2026-0007','AMZ-BJP-4001B','精品','LED护眼台灯','Amazon','UK',1,0,0,0,11,34,[['英国仓',60]],'2026-11-19 11:05:00'],
+  // ---------- PD-2026-0008 落地晾衣架（大件）----------
+  ['刘洋','亚马逊六部-二组','PD-2026-0008','AMZ-BJ-2003','大件','落地晾衣架','Amazon','US',1,1120,156800,31200,0,65,[['谷仓美西20号仓',410]],'2026-11-24 06:00:00'],
+  ['刘洋','亚马逊六部-二组','PD-2026-0008','AMZ-BJ-2003B','大件','落地晾衣架','eBay','US',   1, 180, 25200, 5000,0,65,[['长迈美东仓',95]],'2026-11-24 06:00:00'],
+  // ---------- PD-2026-0009 快充数据线套装（精品，多平台多站点多SKU）----------
+  ['李明','亚马逊二部-一组','PD-2026-0009','AMZ-JP-3003','精品','快充数据线套装','Amazon','US',  3,3100,124000,38000,0,150,[['长迈美东仓',900],['谷仓美西20号仓',600]],'2026-11-24 06:00:00'],
+  ['李明','亚马逊二部-一组','PD-2026-0009','AMZ-JP-3005','精品','快充数据线套装','Amazon','US',  1, 820, 32800, 9800,0,150,[['长迈美东仓',260]],'2026-11-24 06:00:00'],
+  ['李明','亚马逊二部-一组','PD-2026-0009','AMZ-JP-3003','精品','快充数据线套装','eBay','US',    1,1230, 49200,15000,0,150,[['长迈美东仓',0]],'2026-11-24 06:00:00'],
+  ['李明','亚马逊二部-一组','PD-2026-0009','AMZ-JP-3003','精品','快充数据线套装','Amazon','JP',  0,   0,     0,    0,0,  0,[['日本仓',300]],'2026-11-18 08:40:00'],
+  // ---------- PD-2026-0010 简约静音挂钟（精品）----------
+  ['王芳','亚马逊二部-二组','PD-2026-0010','AMZ-BJP-4002','精品','简约静音挂钟','Walmart','US',0,0,0,0, 7,0,[['谷仓美西20号仓',210]],'2026-11-24 06:00:00'],
+  ['王芳','亚马逊二部-二组','PD-2026-0010','AMZ-BJP-4002B','精品','简约静音挂钟','eBay','US',   1,0,0,0, 7,0,[['长迈美东仓',80]],'2026-11-24 06:00:00'],
+  // ---------- PD-2026-0011 折叠餐桌（大件）----------
+  ['张伟','亚马逊六部-一组','PD-2026-0011','AMZ-BJ-2004','大件','折叠餐桌','Amazon','UK',0,0,0,0,45,0,[['英国仓',380]],'2026-11-24 06:00:00'],
+  ['张伟','亚马逊六部-一组','PD-2026-0011','AMZ-BJ-2004B','大件','折叠餐桌','Amazon','DE',0,0,0,0,45,0,[['德国仓',110]],'2026-11-17 16:25:00'],
+  // ---------- PD-2026-0012 无线充电器（精品，单平台单站点单SKU）----------
+  ['刘洋','亚马逊六部-二组','PD-2026-0012','AMZ-JP-3004','精品','无线充电器','Amazon','US',2,3420,342000,76800,0,98,[['长迈美东仓',760]],'2026-11-24 06:00:00'],
+  // ---------- PD-2026-0013 硅胶厨房收纳架（精品）----------
+  ['李明','亚马逊二部-一组','PD-2026-0013','AMZ-BJP-4003','精品','硅胶厨房收纳架','eBay','UK',   1, 830, 66400,14200,0,45,[['英国仓',540]],'2026-11-24 06:00:00'],
+  ['李明','亚马逊二部-一组','PD-2026-0013','AMZ-BJP-4003B','精品','硅胶厨房收纳架','Amazon','US',  2, 220, 17600, 3700,0,45,[['长迈美东仓',95]],'2026-11-24 06:00:00'],
+  // ---------- PD-2026-0020 北欧实木餐桌（大件，同站点 3 个SKU）----------
+  ['王芳','亚马逊二部-二组','PD-2026-0020','AMZ-DJ-5001','大件','北欧实木餐桌','Amazon','US',2,120,12000,3000, 0,28,[['长迈美东仓',30]],'2026-11-24 06:00:00'],
+  ['王芳','亚马逊二部-二组','PD-2026-0020','AMZ-DJ-5002','大件','北欧实木餐桌','Amazon','US',1,230,23000,5800, 0,28,[['谷仓美西20号仓',45]],'2026-11-24 06:00:00'],
+  ['王芳','亚马逊二部-二组','PD-2026-0020','AMZ-DJ-5003','大件','北欧实木餐桌','Amazon','US',0,  0,     0,   0,23, 0,[['谷仓美西20号仓',25]],'2026-11-24 06:00:00'],
+  // ---------- PD-2026-0021 便携咖啡机（精品）----------
+  ['张伟','亚马逊六部-一组','PD-2026-0021','AMZ-JP-6001','精品','便携咖啡机','Amazon','US',  3,410,41000,10200,0,60,[['长迈美东仓',60]],'2026-11-24 06:00:00'],
+  ['张伟','亚马逊六部-一组','PD-2026-0021','AMZ-JP-6001B','精品','便携咖啡机','Amazon','US',1,120,12000, 3000,0,60,[['谷仓美西20号仓',35]],'2026-11-24 06:00:00'],
+  ['张伟','亚马逊六部-一组','PD-2026-0021','AMZ-JP-6002','精品','便携咖啡机','Amazon','DE',1,175,17500, 4400,0,60,[['德国仓',25]],'2026-11-24 06:00:00'],
+  ['张伟','亚马逊六部-一组','PD-2026-0021','AMZ-JP-6003','精品','便携咖啡机','eBay','US',  1,265,26500, 6600,0,60,[['长迈美东仓',40]],'2026-11-23 22:10:00'],
+  // ---------- PD-2026-0022 折叠储物柜（大件）----------
+  ['李明','亚马逊二部-一组','PD-2026-0022','AMZ-DJ-7001','大件','折叠储物柜','Amazon','US',2,90,9000,2200, 0,12,[['长迈美东仓',20]],'2026-11-24 06:00:00'],
+  ['李明','亚马逊二部-一组','PD-2026-0022','AMZ-DJ-7002','大件','折叠储物柜','Amazon','US',1,160,16000,4000,0,12,[['谷仓美西20号仓',35]],'2026-11-24 06:00:00'],
+  ['李明','亚马逊二部-一组','PD-2026-0022','AMZ-DJ-7003','大件','折叠储物柜','Amazon','UK',0,  0,    0,   0,16,12,[['英国仓',15]],'2026-11-15 10:00:00'],
+  // ---------- PD-2026-0023 智能感应夜灯（精品）----------
+  ['刘洋','亚马逊六部-二组','PD-2026-0023','AMZ-JP-8001','精品','智能感应夜灯','eBay','US',   1,305,24400,6100,0,40,[['长迈美东仓',50]],'2026-11-24 06:00:00'],
+  ['刘洋','亚马逊六部-二组','PD-2026-0023','AMZ-JP-8002','精品','智能感应夜灯','Amazon','DE',1,195,15600,3900,0,40,[['德国仓',30]],'2026-11-24 06:00:00']
+];
+
+let allData = [];
+let _uid = 0;
+RAW.forEach(r => {
+  const [salesman, salesGroup, code, sku, series, name, platform, site,
+         listing, sales, revenue, profit, idleDays, sellableDays, whs, stockUpdateTime] = r;
+  whs.forEach(w => {
+    allData.push({
+      id: ++_uid, salesman, salesGroup, code, sku, series, name, platform, site,
+      warehouse: w[0], listing, sales, revenue, profit, stock: w[1],
+      idleDays, sellableDays, stockUpdateTime
+    });
+  });
+});
+
+const fmtNum = n => Number(n).toLocaleString('en-US');
+const fmtMoney = n => '¥' + Number(n).toLocaleString('en-US');
+const DASH = '<span style="color:#bbb;">-</span>';
+const SYNC = '<span class="tag tag-sync">待同步</span>';
+
+let filteredData = [...allData];
+let currentPage = 1;
+let pageSize = 20;
+let selectedIds = new Set();      // 存主数据行（业务员+产品编码+平台+站点）分组 key
+let expandedCodes = new Set([   // 默认展开 3 组，便于直观看到「一个主数据行 → 多个 SKU」
+  '王芳|PD-2026-0002|Amazon|US', '李明|PD-2026-0022|Amazon|US', '张伟|PD-2026-0021|Amazon|US'
+]);
+let currentBatchType = '';
+
+// 数值列手动排序：null = 未手动排序（走系统默认排序）；asc / desc = 按该列升降序
+let sortField = null;
+let sortDir = 'asc';
+const SORTABLE = ['listing', 'sales', 'revenue', 'profit', 'stock', 'idleDays', 'sellableDays', 'stockUpdateTime'];
+
+// 系统默认排序：可售listing数为 0 的排前面，其次销量升序，再按产品编码
+function defaultCompare(a, b) {
+  return ((a.agg.listing > 0 ? 1 : 0) - (b.agg.listing > 0 ? 1 : 0))
+    || (a.agg.sales - b.agg.sales)
+    || a.first.code.localeCompare(b.first.code)
+    || a.first.platform.localeCompare(b.first.platform);
+}
+
+// 取排序值：数值列取数值，时间列取时间字符串；待同步的行无可比值，统一排到末尾
+function sortValue(agg, field) {
+  if (agg.sync) return null;
+  const v = agg[field];
+  if (typeof v === 'number' && isFinite(v)) return v;
+  if (typeof v === 'string' && v) return v;   // 时间格式为 YYYY-MM-DD HH:mm:ss，字典序即时间序
+  return null;
+}
+
+// 统一比较：数值相减，其余按字符串比较
+function compareValues(a, b) {
+  if (typeof a === 'number' && typeof b === 'number') return a - b;
+  const as = String(a), bs = String(b);
+  return as < bs ? -1 : as > bs ? 1 : 0;
+}
+
+function sortGroups(groups) {
+  if (!sortField) return groups.sort(defaultCompare);
+  return groups.sort((a, b) => {
+    const av = sortValue(a.agg, sortField);
+    const bv = sortValue(b.agg, sortField);
+    if (av === null && bv === null) return defaultCompare(a, b);
+    if (av === null) return 1;    // 待同步恒在末尾
+    if (bv === null) return -1;
+    const d = compareValues(av, bv);
+    if (d !== 0) return sortDir === 'asc' ? d : -d;
+    return a.first.code.localeCompare(b.first.code) || a.first.platform.localeCompare(b.first.platform);
+  });
+}
+
+// 明细行跟随同一字段排序，保证逐层阅读方向一致
+function sortSkus(skus) {
+  if (!sortField) return skus;
+  return [...skus].sort((a, b) => {
+    const aa = aggOf(a.rows), ba = aggOf(b.rows);
+    const av = sortValue(aa, sortField), bv = sortValue(ba, sortField);
+    if (av === null && bv === null) return a.first.sku.localeCompare(b.first.sku);
+    if (av === null) return 1;
+    if (bv === null) return -1;
+    const d = compareValues(av, bv);
+    return d !== 0 ? (sortDir === 'asc' ? d : -d) : a.first.sku.localeCompare(b.first.sku);
+  });
+}
+
+function updateSortIndicators() {
+  document.querySelectorAll('th.sortable').forEach(th => {
+    const active = th.dataset.sort === sortField;
+    th.classList.toggle('active', active);
+    if (active) th.dataset.dir = sortDir;
+    else delete th.dataset.dir;
+  });
+}
+
+function bindSortHeaders() {
+  document.querySelectorAll('th.sortable').forEach(th => {
+    th.addEventListener('click', e => {
+      if (e.target.closest('.qmark')) return;   // 点问号只看说明，不排序
+      const f = th.dataset.sort;
+      if (!SORTABLE.includes(f)) return;
+      if (sortField !== f) {
+        sortField = f;
+        sortDir = 'asc';          // 首次点击升序
+      } else if (sortDir === 'asc') {
+        sortDir = 'desc';         // 再点降序
+      } else {
+        sortField = null;         // 第三次取消，回到系统默认排序
+        sortDir = 'asc';
+      }
+      currentPage = 1;
+      renderTable();
+    });
+  });
+}
+
+// 主数据行唯一性：业务员 + 产品编码 + 平台 + 站点（平台、站点各自唯一）
+function groupKeyOf(r) { return [r.salesman, r.code, r.platform, r.site].join('|'); }
+// 产品编码级唯一性（跨平台站点）：批量修改业务员 / 产品编码时按此粒度生效
+function productKeyOf(r) { return [r.salesman, r.code].join('|'); }
+// 明细数据行唯一性：业务员 + 产品编码 + 平台 + 站点 + 平台SKU
+function skuKeyOf(r) { return [r.salesman, r.code, r.platform, r.site, r.sku].join('|'); }
+
+function buildSkuGroups(rows) {
+  const map = new Map();
+  rows.forEach(r => {
+    const k = skuKeyOf(r);
+    if (!map.has(k)) map.set(k, { key: k, rows: [], first: r });
+    map.get(k).rows.push(r);
+  });
+  return [...map.values()];
+}
+
+function buildGroups(rows) {
+  const map = new Map();
+  rows.forEach(r => {
+    const k = groupKeyOf(r);
+    if (!map.has(k)) map.set(k, { key: k, rows: [], first: r });
+    map.get(k).rows.push(r);
+  });
+  return [...map.values()].map(g => ({ ...g, skus: buildSkuGroups(g.rows) }));
+}
+
+// 选中分组对应的全部明细行
+function selectedRows() {
+  const out = [];
+  allData.forEach(r => { if (selectedIds.has(groupKeyOf(r))) out.push(r); });
+  return out;
+}
+
+const sumOf = (rows, f) => rows.reduce((a, r) => a + (Number(r[f]) || 0), 0);
+const uniqOf = (rows, f) => [...new Set(rows.map(r => r[f]))];
+// 平台SKU+平台+站点级指标：同一 SKU 同一站点的多仓库行取值相同，须去重后再求和
+function siteSum(rows, f) {
+  const map = new Map();
+  rows.forEach(r => {
+    const k = [r.sku, r.platform, r.site].join('|');
+    if (!map.has(k)) map.set(k, Number(r[f]) || 0);
+  });
+  return [...map.values()].reduce((a, b) => a + b, 0);
+}
+// 非求和字段：取明细行的最大值
+function maxOf(rows, f) {
+  return rows.reduce((a, r) => Math.max(a, Number(r[f]) || 0), 0);
+}
+// 库存更新时间：取明细行中最新的一条
+function latestUpdateTime(rows) {
+  return rows.reduce((a, r) => (!a || r.stockUpdateTime > a ? r.stockUpdateTime : a), '');
+}
+
+function aggOf(rows) {
+  return {
+    listing: siteSum(rows, 'listing'),
+    sales: siteSum(rows, 'sales'),
+    revenue: siteSum(rows, 'revenue'),
+    profit: siteSum(rows, 'profit'),
+    stock: sumOf(rows, 'stock'),
+    idleDays: maxOf(rows, 'idleDays'),
+    sellableDays: maxOf(rows, 'sellableDays'),
+    stockUpdateTime: latestUpdateTime(rows),
+    sync: rows.some(r => r.pendingSync),
+    platforms: uniqOf(rows, 'platform'),
+    sites: uniqOf(rows, 'site'),
+    warehouses: uniqOf(rows, 'warehouse')
+  };
+}
+
+function whText(list) {
+  const all = list.join('、');
+  return (list.length > 2 || all.length > 16) ? `${list[0]}等${list.length}个仓库` : all;
+}
+
+const typeMap = {
+  salesman: { title: '批量修改业务员', field: 'salesman', label: '业务员' },
+  code: { title: '批量修改产品编码', field: 'code', label: '产品编码' },
+  sku: { title: '批量修改平台SKU', field: 'sku', label: '平台SKU' }
+};
+
+// 该 SKU 的总库存（跨平台站点仓库合计），用于「库存是否为0」
+function skuStock(sku) {
+  return allData.filter(r => r.sku === sku).reduce((a, r) => a + (r.stock || 0), 0);
+}
+
+function initFilters() {
+  const salesmen = [...new Set(allData.map(d => d.salesman))];
+  const salesmanSel = document.getElementById('filterSalesman');
+  const seriesSel = document.getElementById('filterSeries');
+  salesmen.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; salesmanSel.appendChild(o); });
+  ['大件', '精品'].forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; seriesSel.appendChild(o); });
+  const grpSel = document.getElementById('filterGroup');
+  [...new Set(allData.map(d => d.salesGroup))].sort().forEach(x => { const o = document.createElement('option'); o.value = x; o.textContent = x; grpSel.appendChild(o); });
+  const siteSel = document.getElementById('filterSite');
+  [...new Set(allData.map(d => d.site))].sort().forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; siteSel.appendChild(o); });
+}
+
+function renderTable() {
+  // 排序：默认按「可售listing数为 0 优先、销量升序」；用户点数值列表头后按其升降序
+  const groups = sortGroups(buildGroups(filteredData).map(g => ({ ...g, agg: aggOf(g.rows) })));
+
+  const start = (currentPage - 1) * pageSize;
+  const pageGroups = groups.slice(start, start + pageSize);
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+
+  if (pageGroups.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="18"><div class="empty-state"><div class="empty-img">🗂</div><p>暂无数据</p></div></td></tr>';
+  } else {
+    pageGroups.forEach(g => {
+      const a = g.agg;
+      const exp1 = expandedCodes.has(g.key);
+      const sel = selectedIds.has(g.key);
+      const can1 = g.skus.length > 0;   // 主行不含平台SKU，须展开才能看到 SKU（单 SKU 产品同理）
+      // ---------- 主数据行：业务员 + 产品编码 + 平台 + 站点（平台、站点各自唯一） ----------
+      const tr1 = document.createElement('tr');
+      tr1.className = 'lv1-row group-first' + (exp1 ? ' parent-expanded' : '') + (sel ? ' selected' : '');
+      tr1.innerHTML = `
+        <td class="expand-cell">${can1 ? `<span class="expander" data-code="${g.key}">${exp1 ? '▼' : '▶'}</span>` : ''}</td>
+        <td><input type="checkbox" class="check row-check" data-group="${g.key}" ${sel ? 'checked' : ''}></td>
+        <td>${g.first.salesman}</td>
+        <td>${g.first.salesGroup}</td>
+        <td class="prod-cell"><span class="prod-code">${g.first.code}</span></td>
+        <td>${g.first.series}</td>
+        <td>${g.first.name}</td>
+        <td>${g.first.platform}</td>
+        <td>${g.first.site}</td>
+        <td class="wh-col">${whText(a.warehouses)}</td>
+        <td class="num">${a.sync ? SYNC : fmtNum(a.listing)}</td>
+        <td class="num">${a.sync ? SYNC : fmtNum(a.sales)}</td>
+        <td class="num">${a.sync ? SYNC : fmtMoney(a.revenue)}</td>
+        <td class="num">${a.sync ? SYNC : fmtMoney(a.profit)}</td>
+        <td class="num">${a.sync ? SYNC : fmtNum(a.stock)}</td>
+        <td class="num">${a.sync ? SYNC : fmtNum(a.idleDays)}</td>
+        <td class="num">${a.sync ? SYNC : fmtNum(a.sellableDays)}</td>
+        <td class="time-cell">${a.stockUpdateTime}</td>
+      `;
+      tbody.appendChild(tr1);
+
+      if (!exp1) return;
+
+      // ---------- 明细数据行：一行一个平台SKU，产品信息两行（第一行产品编码、第二行平台SKU） ----------
+      sortSkus(g.skus).forEach(s => {
+        const sa = aggOf(s.rows);
+        const tr2 = document.createElement('tr');
+        tr2.className = 'lv2-row';
+        tr2.innerHTML = `
+          <td class="expand-cell"></td>
+          <td class="pad"></td>
+          <td>${s.first.salesman}</td>
+          <td>${s.first.salesGroup}</td>
+          <td class="prod-cell detail-prod">
+            <div class="dp-l1">${s.first.code}</div>
+            <div class="dp-l2">${s.first.sku}</div>
+          </td>
+          <td>${s.first.series}</td>
+          <td>${s.first.name}</td>
+          <td>${s.first.platform}</td>
+          <td>${s.first.site}</td>
+          <td class="wh-col">${whText(sa.warehouses)}</td>
+          <td class="num">${sa.sync ? SYNC : fmtNum(sa.listing)}</td>
+          <td class="num">${sa.sync ? SYNC : fmtNum(sa.sales)}</td>
+          <td class="num">${sa.sync ? SYNC : fmtMoney(sa.revenue)}</td>
+          <td class="num">${sa.sync ? SYNC : fmtMoney(sa.profit)}</td>
+          <td class="num">${sa.sync ? SYNC : fmtNum(sa.stock)}</td>
+          <td class="num">${sa.sync ? SYNC : fmtNum(sa.idleDays)}</td>
+          <td class="num">${sa.sync ? SYNC : fmtNum(sa.sellableDays)}</td>
+          <td class="time-cell">${sa.stockUpdateTime}</td>
+        `;
+        tbody.appendChild(tr2);
+      });
+    });
+  }
+  updateSelectInfo();
+  renderPagination(groups.length);
+  bindRowChecks();
+  bindExpanders();
+  updateSortIndicators();
+}
+
+function bindExpanders() {
+  document.querySelectorAll('.expander').forEach(el => {
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      const k = el.dataset.code;
+      if (!k) return;
+      if (expandedCodes.has(k)) expandedCodes.delete(k);
+      else expandedCodes.add(k);
+      renderTable();
+    });
+  });
+}
+
+function renderPagination(groupTotal) {
+  const total = groupTotal;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const pg = document.getElementById('pagination');
+  let html = `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="goPage(${currentPage - 1})">&lt;</button>`;
+  for (let i = 1; i <= totalPages; i++) {
+    html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+  }
+  html += `<button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="goPage(${currentPage + 1})">&gt;</button>`;
+  html += `<div class="page-jump">跳到 <input type="text" id="jumpInput" value="${currentPage}"> 页</div>`;
+  pg.innerHTML = html;
+  document.getElementById('rowCount').textContent = total;
+  document.getElementById('jumpInput').addEventListener('change', e => {
+    const p = parseInt(e.target.value, 10);
+    if (p >= 1 && p <= totalPages) goPage(p);
+  });
+}
+
+function goPage(p) {
+  currentPage = p;
+  renderTable();
+}
+
+function bindRowChecks() {
+  document.querySelectorAll('.row-check').forEach(cb => {
+    cb.addEventListener('change', e => {
+      const k = e.target.dataset.group;
+      if (e.target.checked) selectedIds.add(k);
+      else selectedIds.delete(k);
+      renderTable();
+    });
+  });
+}
+
+function updateSelectInfo() {
+  document.getElementById('selectedCount').textContent = selectedIds.size;
+  document.getElementById('btnExport').disabled = selectedIds.size === 0;
+  document.getElementById('btnBatchEdit').disabled = selectedIds.size === 0;
+  const allKeys = buildGroups(filteredData).map(g => g.key);
+  document.getElementById('checkAll').checked = allKeys.length > 0 && allKeys.every(k => selectedIds.has(k));
+}
+
+document.getElementById('checkAll').addEventListener('change', e => {
+  const keys = buildGroups(filteredData).map(g => g.key);
+  if (e.target.checked) keys.forEach(k => selectedIds.add(k));
+  else keys.forEach(k => selectedIds.delete(k));
+  renderTable();
+});
+
+function applyFilters() {
+  const salesman = document.getElementById('filterSalesman').value;
+  const series = document.getElementById('filterSeries').value;
+  const grp = document.getElementById('filterGroup').value;
+  const name = document.getElementById('filterName').value.trim().toLowerCase();
+  const site = document.getElementById('filterSite').value;
+  const salesZero = document.getElementById('filterSalesZero').value;
+  const stockZero = document.getElementById('filterStockZero').value;
+  const listingZero = document.getElementById('filterListingZero').value;
+  const searchType = document.getElementById('searchType').value;
+  const searchVal = document.getElementById('searchInput').value.trim();
+
+  filteredData = allData.filter(d => {
+    if (salesman && d.salesman !== salesman) return false;
+    if (series && d.series !== series) return false;
+    if (grp && d.salesGroup !== grp) return false;
+    if (name && !d.name.toLowerCase().includes(name)) return false;
+    if (site && d.site !== site) return false;
+
+    if (salesZero === '1' && d.sales !== 0) return false;
+    if (salesZero === '0' && d.sales === 0) return false;
+
+    const st = skuStock(d.sku);
+    if (stockZero === '1' && st !== 0) return false;
+    if (stockZero === '0' && st === 0) return false;
+
+    if (listingZero === '1' && d.listing !== 0) return false;
+    if (listingZero === '0' && d.listing === 0) return false;
+
+    if (searchVal) {
+      const vals = searchVal.split(',').map(s => s.trim()).filter(Boolean);
+      const target = searchType === 'platformSku' ? d.sku : d.code;
+      if (vals.length === 1) {
+        if (!target.toLowerCase().includes(vals[0].toLowerCase())) return false;
+      } else {
+        if (!vals.some(v => target.toLowerCase() === v.toLowerCase())) return false;
+      }
+    }
+    return true;
+  });
+  currentPage = 1;
+  selectedIds.clear();
+  renderTable();
+}
+
+document.getElementById('btnSearch').addEventListener('click', applyFilters);
+document.getElementById('btnReset').addEventListener('click', () => {
+  ['filterSalesman', 'filterGroup', 'filterSeries', 'filterName', 'filterSite', 'filterSalesZero', 'filterStockZero', 'filterListingZero', 'searchInput'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('searchType').value = 'platformSku';
+  filteredData = [...allData];
+  currentPage = 1;
+  selectedIds.clear();
+  sortField = null;          // 重置一并恢复系统默认排序
+  sortDir = 'asc';
+  renderTable();
+});
+
+document.getElementById('pageSize').addEventListener('change', e => {
+  pageSize = parseInt(e.target.value, 10);
+  currentPage = 1;
+  renderTable();
+});
+
+const importModal = document.getElementById('importModal');
+document.getElementById('btnImport').addEventListener('click', () => importModal.classList.add('show'));
+document.getElementById('closeImport').addEventListener('click', () => importModal.classList.remove('show'));
+document.getElementById('cancelImport').addEventListener('click', () => importModal.classList.remove('show'));
+document.getElementById('confirmImport').addEventListener('click', () => {
+  importModal.classList.remove('show');
+  showToast('上传成功，已识别 0 条新数据（演示）', 'success');
+});
+
+document.getElementById('tplLink').addEventListener('click', () => {
+  downloadExcel([['业务员', '产品编码', '平台SKU']], '产品上架追踪-导入模板.xlsx');
+  showToast('模板下载中...', 'info');
+});
+
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+uploadArea.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => {
+  if (e.target.files.length) showToast(`已选择文件：${e.target.files[0].name}`, 'info');
+});
+
+// 导出：用户所选数据的所有明细数据行（一行一个平台SKU，与列表明细行一致，每行数值完整）
+document.getElementById('btnExport').addEventListener('click', () => {
+  if (selectedIds.size === 0) return;
+  const groups = buildGroups(allData).filter(g => selectedIds.has(g.key));
+  const headers = ['业务员', '销售组', '产品编码', '平台SKU', '产品系列', '产品名称', '平台', '站点', '仓库',
+                   '可售listing数', '销量', '销售额', '利润', '库存', '有货滞销天数', '可售天数', '库存更新时间'];
+  const data = [];
+  groups.forEach(g => {
+    g.skus.forEach(s => {
+      const a = aggOf(s.rows);
+      const sync = a.sync;
+      data.push([
+        s.first.salesman, s.first.salesGroup, s.first.code, s.first.sku, s.first.series, s.first.name,
+        s.first.platform, s.first.site, whText(a.warehouses),
+        sync ? '待同步' : a.listing,
+        sync ? '待同步' : a.sales,
+        sync ? '待同步' : a.revenue,
+        sync ? '待同步' : a.profit,
+        sync ? '待同步' : a.stock,
+        sync ? '待同步' : a.idleDays,
+        sync ? '待同步' : a.sellableDays,
+        a.stockUpdateTime
+      ]);
+    });
+  });
+  downloadExcel([headers, ...data], '产品上架追踪-导出数据.xlsx');
+  showToast(`已导出 ${groups.length} 个主数据行，共 ${data.length} 行平台SKU明细`, 'success');
+});
+
+function downloadExcel(rows, filename) {
+  let csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+const batchMenu = document.getElementById('batchMenu');
+const btnBatchEdit = document.getElementById('btnBatchEdit');
+const batchArrow = document.getElementById('batchArrow');
+
+btnBatchEdit.addEventListener('click', e => {
+  e.stopPropagation();
+  if (selectedIds.size === 0) return;
+  batchMenu.classList.toggle('open');
+  batchArrow.textContent = batchMenu.classList.contains('open') ? '▼' : '▲';
+});
+
+document.querySelectorAll('#batchMenu .dm-item').forEach(item => {
+  item.addEventListener('click', e => {
+    e.stopPropagation();
+    currentBatchType = item.dataset.type;
+    openBatchEdit(currentBatchType);
+    batchMenu.classList.remove('open');
+    batchArrow.textContent = '▲';
+  });
+});
+
+document.addEventListener('click', () => {
+  batchMenu.classList.remove('open');
+  batchArrow.textContent = '▲';
+});
+
+const batchEditModal = document.getElementById('batchEditModal');
+function openBatchEdit(type) {
+  const cfg = typeMap[type];
+  document.getElementById('beTitle').textContent = cfg.title;
+  const tip = document.querySelector('#batchEditModal .be-tip');
+  tip.innerHTML = type === 'sku'
+    ? '<strong>注意：</strong>平台SKU 变更后，该行数据（可售listing数、销量、销售额、利润、库存）将显示「待同步」，待次日数据刷新后恢复。'
+    : '<strong>说明：</strong>修改业务员 / 产品编码不影响 listing 匹配结果，其他字段保持不变。';
+  // 修改平台SKU 时按 SKU 粒度展示；其余按产品编码粒度展示（同一产品编码跨平台站点合并为一行）
+  const prodGroups = buildGroups(allData).filter(g => selectedIds.has(g.key));
+  const prodMap = new Map();
+  prodGroups.forEach(g => {
+    const pk = productKeyOf(g.first);
+    if (!prodMap.has(pk)) prodMap.set(pk, { key: pk, row: g.first, skuCount: 0, sites: [] });
+    const it = prodMap.get(pk);
+    it.skuCount += g.skus.length;
+    it.sites.push(`${g.first.platform}/${g.first.site}`);
+  });
+  const rowsCfg = type === 'sku'
+    ? prodGroups.flatMap(g => g.skus.map(s => ({ key: s.key, row: s.first, tail: `${s.first.name} · ${s.first.platform}/${s.first.site}` })))
+    : [...prodMap.values()].map(it => ({ key: it.key, row: it.row, tail: `${it.row.name} · ${it.skuCount} 个SKU · ${[...new Set(it.sites)].join('、')}` }));
+  const tbody = document.getElementById('beBody');
+  tbody.innerHTML = '';
+  const thead = document.querySelector('#batchEditModal .be-table thead tr');
+  thead.innerHTML = `
+    <th style="width:50px;">序号</th>
+    <th style="width:150px;color:${type === 'salesman' ? '#1e5fd9' : '#555'};">业务员${type === 'salesman' ? '（可编辑）' : ''}</th>
+    <th style="width:170px;color:${type === 'code' ? '#1e5fd9' : '#555'};">产品编码${type === 'code' ? '（可编辑）' : ''}</th>
+    <th style="width:170px;color:${type === 'sku' ? '#1e5fd9' : '#555'};">平台SKU${type === 'sku' ? '（可编辑）' : ''}</th>
+    <th>${type === 'sku' ? '产品名称 / 站点' : '产品名称 / SKU 数'}</th>
+  `;
+  rowsCfg.forEach((cfg, idx) => {
+    const row = cfg.row;
+    const tr = document.createElement('tr');
+    const cell = (field, editable) => {
+      if (!editable) return `<td style="color:#888;">${row[field]}</td>`;
+      return `<td><input type="text" class="be-input" data-key="${cfg.key}" data-field="${field}" value="${row[field]}"></td>`;
+    };
+    tr.innerHTML = `<td>${idx + 1}</td>${cell('salesman', type === 'salesman')}${cell('code', type === 'code')}${cell('sku', type === 'sku')}`
+      + `<td style="color:#888;">${cfg.tail}</td>`;
+    tbody.appendChild(tr);
+  });
+  batchEditModal.classList.add('show');
+}
+
+document.getElementById('closeBatchEdit').addEventListener('click', () => batchEditModal.classList.remove('show'));
+document.getElementById('cancelBatchEdit').addEventListener('click', () => batchEditModal.classList.remove('show'));
+document.getElementById('confirmBatchEdit').addEventListener('click', () => {
+  let skuChanged = false;
+  const edits = {};
+  const keyFn = currentBatchType === 'sku' ? skuKeyOf : productKeyOf;
+  document.querySelectorAll('#beBody .be-input').forEach(input => {
+    const k = input.dataset.key;
+    const field = input.dataset.field;
+    const row = allData.find(d => keyFn(d) === k);
+    if (row && row[field] !== input.value) {
+      edits[k] = edits[k] || {};
+      edits[k][field] = input.value;
+    }
+  });
+  Object.keys(edits).forEach(k => {
+    allData.forEach(r => {
+      if (keyFn(r) !== k) return;
+      Object.keys(edits[k]).forEach(f => {
+        r[f] = edits[k][f];
+        if (f === 'sku') { r.pendingSync = true; skuChanged = true; }
+      });
+    });
+  });
+  batchEditModal.classList.remove('show');
+  selectedIds.clear();
+  applyFilters();
+  showToast(skuChanged ? '批量修改成功，平台SKU 变更的数据将显示「待同步」' : '批量修改成功', 'success');
+});
+
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+// 字段说明悬浮气泡
+(function () {
+  const tip = document.createElement('div');
+  tip.id = 'fieldTip';
+  document.body.appendChild(tip);
+  const place = e => {
+    const w = tip.offsetWidth || 300;
+    tip.style.left = Math.min(e.clientX + 14, window.innerWidth - w - 12) + 'px';
+    tip.style.top = (e.clientY + 16) + 'px';
+  };
+  document.querySelectorAll('.qmark').forEach(el => {
+    el.addEventListener('mouseenter', e => {
+      tip.textContent = el.dataset.tip;
+      tip.classList.add('show');
+      place(e);
+    });
+    el.addEventListener('mousemove', place);
+    el.addEventListener('mouseleave', () => tip.classList.remove('show'));
+  });
+})();
+
+initFilters();
+bindSortHeaders();
+renderTable();
+</script>
+</body>
+</html>
